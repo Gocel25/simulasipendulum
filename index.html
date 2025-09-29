@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>Simulasi 3D Pendulum Final (Tampilan Dikorversi)</title>
+    <title>Simulasi 3D Pendulum Final (Input Langsung)</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
 
     <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
@@ -46,18 +46,40 @@
         }
         
         /* Gaya Kontrol Input */
-        .control-group { margin-bottom: 5px; }
+        .control-group { 
+            margin-bottom: 5px; 
+            padding-bottom: 5px;
+            border-bottom: 1px dashed #555;
+        }
 
         .control-group label {
-            display: flex;
-            justify-content: space-between;
+            display: block; /* Label di atas */
             font-size: 0.75em;
-            margin-bottom: 1px;
+            margin-bottom: 3px;
+            font-weight: bold;
         }
         
-        .control-group input[type="range"] {
-            width: 100%;
+        /* Wadah untuk Slider dan Input Number */
+        .input-sync-container {
+             display: flex; 
+             align-items: center; 
+             justify-content: space-between;
+        }
+
+        .input-sync-container input[type="range"] {
+            flex-grow: 1; 
+            margin-right: 5px;
             height: 15px;
+        }
+        
+        .input-sync-container input[type="number"] {
+            width: 45px; /* Lebar lebih kecil */
+            text-align: right; 
+            color: black;
+            font-size: 0.8em;
+            padding: 2px;
+            border: none;
+            border-radius: 3px;
         }
 
         /* Gaya Output Data */
@@ -116,13 +138,21 @@
         <h4 style="margin: 0 0 5px 0; font-size: 1em; text-align: center;">Kontrol Parameter</h4>
         
         <div class="control-group">
-            <label for="panjangTali">Panjang Tali (L): <span id="L-val">1.00 m</span></label>
-            <input type="range" id="panjangTali" min="0.5" max="2.0" step="0.05" value="1.0">
+            <label for="panjangTaliSlider">Panjang Tali (L)</label>
+            <div class="input-sync-container">
+                <input type="range" id="panjangTaliSlider" min="0.5" max="2.0" step="0.05" value="1.0">
+                <input type="number" id="panjangTaliNumber" min="0.5" max="2.0" step="0.05" value="1.00">
+                <span style="font-size: 0.8em; margin-left: 2px;">m</span>
+            </div>
         </div>
-        
+
         <div class="control-group">
-            <label for="simpanganAwal">Simpangan ($\theta_{max}$): <span id="theta-val">30 °</span></label>
-            <input type="range" id="simpanganAwal" min="5" max="60" step="1" value="30">
+            <label for="simpanganAwalSlider">Simpangan Maks. ($\theta_{max}$)</label>
+            <div class="input-sync-container">
+                <input type="range" id="simpanganAwalSlider" min="5" max="60" step="1" value="30">
+                <input type="number" id="simpanganAwalNumber" min="5" max="60" step="1" value="30">
+                <span style="font-size: 0.8em; margin-left: 2px;">°</span>
+            </div>
         </div>
         
         <div id="action-buttons">
@@ -222,11 +252,13 @@
         let pauseTime = 0; 
         let dataCount = 0; 
 
-        // Elemen DOM
-        const L_input = document.getElementById('panjangTali');
-        const theta_input = document.getElementById('simpanganAwal');
-        const L_val_span = document.getElementById('L-val');
-        const theta_val_span = document.getElementById('theta-val');
+        // Elemen DOM untuk Input
+        const L_slider = document.getElementById('panjangTaliSlider');
+        const L_number = document.getElementById('panjangTaliNumber');
+        const theta_slider = document.getElementById('simpanganAwalSlider');
+        const theta_number = document.getElementById('simpanganAwalNumber');
+
+        // Elemen DOM untuk Output
         const T_val_span = document.getElementById('T-val');
         const status_text = document.getElementById('status-text');
         const startButton = document.getElementById('startButton');
@@ -239,7 +271,47 @@
         const omega_val_span = document.getElementById('omega-val');
         let bob, line;
 
-        // --- FUNGSI PERHITUNGAN FISIKA ---
+        // --- FUNGSI SINKRONISASI INPUT ---
+
+        // Fungsi untuk mengamankan nilai dan memperbarui kedua input L
+        function updateL(L_new) {
+            // Memastikan nilai L berada dalam batas min (0.5) dan max (2.0)
+            L_new = Math.min(2.0, Math.max(0.5, L_new || 0.5)); // Gunakan 0.5 jika input NaN
+            
+            L_slider.value = L_new;
+            L_number.value = L_new.toFixed(2);
+            
+            if (!isSimulating && !isPaused) {
+                // Perlu memastikan nilai Theta juga valid saat memanggil setBobPosition
+                const theta_val = parseFloat(theta_number.value) || 30; 
+                setBobPosition(L_new, theta_val);
+            }
+        }
+
+        // Fungsi untuk mengamankan nilai dan memperbarui kedua input Theta
+        function updateTheta(theta_new) {
+            // Memastikan nilai Theta berada dalam batas min (5) dan max (60)
+            theta_new = Math.min(60, Math.max(5, theta_new || 5)); 
+            
+            theta_slider.value = theta_new;
+            theta_number.value = theta_new;
+            
+            if (!isSimulating && !isPaused) {
+                const L_val = parseFloat(L_number.value) || 1.0;
+                setBobPosition(L_val, theta_new);
+            }
+        }
+        
+        // Listener dari Slider
+        function updateLFromSlider() { updateL(parseFloat(L_slider.value)); }
+        function updateThetaFromSlider() { updateTheta(parseFloat(theta_slider.value)); }
+        
+        // Listener dari Input Number (menggunakan 'change' untuk validasi saat nilai selesai dimasukkan)
+        function updateLFromNumber() { updateL(parseFloat(L_number.value)); }
+        function updateThetaFromNumber() { updateTheta(parseFloat(theta_number.value)); }
+
+
+        // --- FUNGSI FISIKA & UI DASAR ---
         function calculatePeriod(L) { return 2 * Math.PI * Math.sqrt(L / G); }
         function calculateAngle(t, L, theta_max_rad) {
             const omega_natural = Math.sqrt(G / L);
@@ -250,16 +322,14 @@
             return -omega_natural * theta_max_rad * Math.sin(omega_natural * t);
         }
 
-        // --- FUNGSI PENCATATAN DATA ---
         function logDataToTable() {
-            const L = parseFloat(L_input.value);
+            const L = parseFloat(L_number.value);
             const T = calculatePeriod(L);
             const T_squared = T * T;
             dataCount++;
 
             const newRow = tableBody.insertRow();
             
-            // Kolom Data
             newRow.insertCell().textContent = dataCount;
             newRow.insertCell().textContent = L.toFixed(2);
             newRow.insertCell().textContent = T.toFixed(2);
@@ -268,7 +338,7 @@
             status_text.textContent = `Data ke-${dataCount} (L=${L.toFixed(2)}m) dicatat.`;
         }
         
-        // --- FUNGSI UPDATE UI & 3D (Statis) ---
+        // Memperbarui posisi 3D berdasarkan nilai dari input number
         function setBobPosition(L, theta_deg) {
             if (!bob || !line) return;
 
@@ -282,8 +352,6 @@
             const T = calculatePeriod(L);
             
             // Update output statis
-            L_val_span.textContent = `${L.toFixed(2)} m`;
-            theta_val_span.textContent = `${theta_deg} °`;
             T_val_span.textContent = T.toFixed(2);
             
             // Reset nilai real-time
@@ -301,19 +369,19 @@
                 bob = document.getElementById('bob');
                 line = document.getElementById('pendulum-line');
 
-                const L_init = parseFloat(L_input.value);
-                const theta_init = parseFloat(theta_input.value);
+                // Pasang Event Listeners untuk sinkronisasi input
+                L_slider.addEventListener('input', updateLFromSlider);
+                L_number.addEventListener('change', updateLFromNumber);
+                theta_slider.addEventListener('input', updateThetaFromSlider);
+                theta_number.addEventListener('change', updateThetaFromNumber);
+
+                // Inisialisasi posisi awal menggunakan nilai dari input number
+                const L_init = parseFloat(L_number.value);
+                const theta_init = parseFloat(theta_number.value);
                 setBobPosition(L_init, theta_init);
                 logDataButton.disabled = false; 
 
-                // Event Listeners UI
-                L_input.addEventListener('input', () => {
-                    if (!isSimulating && !isPaused) { setBobPosition(parseFloat(L_input.value), parseFloat(theta_input.value)); }
-                });
-                theta_input.addEventListener('input', () => {
-                    if (!isSimulating && !isPaused) { setBobPosition(parseFloat(L_input.value), parseFloat(theta_input.value)); }
-                });
-
+                // Event Listeners Kontrol Simulasi
                 startButton.addEventListener('click', () => {
                     if (isPaused) {
                         isPaused = false;
@@ -358,7 +426,8 @@
                     startButton.textContent = 'Mulai'; 
                     status_text.textContent = 'Simulasi direset.';
                     
-                    setBobPosition(parseFloat(L_input.value), parseFloat(theta_input.value));
+                    // Reset posisi menggunakan nilai saat ini (yang sudah disinkronkan)
+                    setBobPosition(parseFloat(L_number.value), parseFloat(theta_number.value));
                 });
                 
                 logDataButton.addEventListener('click', logDataToTable);
@@ -370,8 +439,9 @@
                 const currentTime = time / 1000;
                 const t = currentTime - startTime; 
                 
-                const L = parseFloat(L_input.value);
-                const theta_max_deg = parseFloat(theta_input.value);
+                // Ambil nilai terbaru dari input number
+                const L = parseFloat(L_number.value);
+                const theta_max_deg = parseFloat(theta_number.value);
                 const theta_max_rad = THREE.MathUtils.degToRad(theta_max_deg);
 
                 const theta_t_rad = calculateAngle(t, L, theta_max_rad);
