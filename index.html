@@ -2,11 +2,10 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>Markerless Web AR Pendulum - Statif & Gerak Kontinu</title>
+    <title>Simulasi 3D Pendulum Web dengan Data Real-Time</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
 
     <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/aframe-extras@6.1.1/dist/aframe-extras.min.js"></script>
 
     <style>
         body {
@@ -23,7 +22,7 @@
             left: 0;
             width: 100%;
             padding: 15px;
-            background-color: rgba(0, 0, 0, 0.85); /* Lebih gelap agar lebih jelas */
+            background-color: rgba(0, 0, 0, 0.85);
             box-sizing: border-box;
             z-index: 1000;
             max-height: 50vh; 
@@ -35,7 +34,7 @@
             font-size: 1.2em;
         }
 
-        #ui-container label, #output p {
+        #ui-container label, #output p, #real-time-output p {
             display: block;
             margin: 8px 0;
             font-size: 0.9em;
@@ -69,12 +68,19 @@
             background-color: #888;
             cursor: default;
         }
+
+        #real-time-output {
+            margin-top: 10px;
+            padding: 5px;
+            border: 1px solid #555;
+            background-color: #333;
+        }
     </style>
 </head>
 <body>
 
     <div id="ui-container">
-        <h2>Kontrol Simulasi Pendulum 📐</h2>
+        <h2>Kontrol Simulasi Pendulum 3D 🧪</h2>
         
         <label for="panjangTali">Panjang Tali (L): <span id="L-val">1.00</span> m</label>
         <input type="range" id="panjangTali" min="0.5" max="2.0" step="0.05" value="1.0">
@@ -92,23 +98,31 @@
         <div id="output">
             <p>Periode Ayunan (T): <span id="T-val">2.01</span> detik</p>
             <p>Gravitasi (g): 9.81 m/s²</p>
-            <p>Status: <span id="status-text">Tap layar untuk menempatkan statif!</span></p>
+            <p>Status: <span id="status-text">Siap! Tekan "Mulai Simulasi".</span></p>
+        </div>
+
+        <div id="real-time-output">
+            <strong>DATA REAL-TIME:</strong>
+            <p>Waktu (t): <span id="time-val">0.00</span> s</p>
+            <p>Sudut ($\theta$): <span id="angle-val">0.00</span> °</p>
+            <p>Kecepatan Sudut ($\omega$): <span id="omega-val">0.00</span> rad/s</p>
         </div>
     </div>
 
     <a-scene
         renderer="colorManagement: true;"
         vr-mode-ui="enabled: false"
-        ar-mode-ui="enabled: true"
-        webxr="requiredFeatures: ['hit-test', 'local-floor']; optionalFeatures: ['dom-overlay']; overlayElement: #ui-container;"
+        background="color: #ECECEC" 
         >
 
         <a-light type="ambient" color="#FFF"></a-light>
         <a-light type="directional" position="1 2 1" intensity="1.5"></a-light>
 
-        <a-entity id="ar-anchor" visible="false">
+        <a-plane rotation="-90 0 0" width="10" height="10" color="#7BC8A4" shadow></a-plane>
+
+        <a-entity id="pendulum-group" position="0 0 0">
             
-            <a-entity id="statif-group">
+            <a-entity id="statif-model">
                 <a-box position="0 0.025 0" width="0.3" height="0.05" depth="0.3" color="#444" shadow></a-box>
                 <a-cylinder position="0 0.525 0" radius="0.02" height="1.0" color="#666" shadow></a-cylinder>
                 <a-box position="0 1.05 0" width="0.25" height="0.03" depth="0.03" color="#555" shadow></a-box>
@@ -123,22 +137,21 @@
 
         </a-entity>
 
-        <a-entity script-logika-pendulum></a-entity>
+        <a-camera position="0 1.6 3" wasd-controls="enabled: false"></a-camera>
 
-        <a-camera user-height="0" wasd-controls="enabled: false" rotation-reader></a-camera>
+        <a-entity script-logika-pendulum></a-entity>
 
     </a-scene>
 
     <script>
         // --- KONSTANTA & VARIABEL GLOBAL ---
         const G = 9.81; // Percepatan gravitasi (m/s^2)
-        const FULCRUM_Y_OFFSET = 1.05; // Tinggi titik tumpu statif dari lantai
+        const FULCRUM_Y_OFFSET = 1.05; // Tinggi titik tumpu statif dari alas (0, 0, 0)
 
         let isSimulating = false;
-        let isPlaced = false;
         let startTime = 0;
 
-        // Elemen DOM untuk Input/Output
+        // Elemen DOM untuk Output
         const L_input = document.getElementById('panjangTali');
         const theta_input = document.getElementById('simpanganAwal');
         const L_val_span = document.getElementById('L-val');
@@ -147,93 +160,85 @@
         const status_text = document.getElementById('status-text');
         const startButton = document.getElementById('startButton');
         const resetButton = document.getElementById('resetButton');
+        
+        // Elemen Output Real-Time BARU
+        const time_val_span = document.getElementById('time-val');
+        const angle_val_span = document.getElementById('angle-val');
+        const omega_val_span = document.getElementById('omega-val');
 
         // Elemen 3D A-Frame
-        let bob, line, fulcrum, arAnchor;
+        let bob, line;
 
         // --- FUNGSI PERHITUNGAN FISIKA ---
 
-        /**
-         * Menghitung periode (T) GHS.
-         */
+        /** Menghitung periode (T) GHS. */
         function calculatePeriod(L) {
             return 2 * Math.PI * Math.sqrt(L / G);
         }
 
-        /**
-         * Menghitung posisi sudut bandul pada waktu t.
-         */
+        /** Menghitung posisi sudut bandul pada waktu t. */
         function calculateAngle(t, L, theta_max_rad) {
-            const omega = Math.sqrt(G / L);
-            // Gerak Harmonik Sederhana (GHS)
-            return theta_max_rad * Math.cos(omega * t);
+            const omega_natural = Math.sqrt(G / L);
+            // theta_t = theta_max * cos(omega_natural * t)
+            return theta_max_rad * Math.cos(omega_natural * t);
+        }
+        
+        /** Menghitung Kecepatan Sudut (d(theta)/dt) pada waktu t. */
+        function calculateAngularVelocity(t, L, theta_max_rad) {
+            const omega_natural = Math.sqrt(G / L);
+            // omega_t = -omega_natural * theta_max * sin(omega_natural * t)
+            return -omega_natural * theta_max_rad * Math.sin(omega_natural * t);
         }
 
-        // --- FUNGSI UPDATE UI & 3D ---
+        // --- FUNGSI UPDATE UI & 3D (Statis) ---
 
-        /**
-         * Menetapkan posisi bandul statis (sebelum simulasi) berdasarkan L dan theta.
-         */
+        /** Menetapkan posisi bandul statis dan memperbarui output T. */
         function setBobPosition(L, theta_deg) {
             if (!bob || !line) return;
 
             const theta_rad = THREE.MathUtils.degToRad(theta_deg);
             
-            // Konversi posisi polar ke Kartesius, relatif terhadap titik tumpu
             const x = L * Math.sin(theta_rad);
-            const y = FULCRUM_Y_OFFSET - L * Math.cos(theta_rad);
+            const y = FULCRUM_Y_OFFSET - L * Math.cos(theta_rad); 
             const z = 0; 
 
-            // Atur posisi bandul
             bob.setAttribute('position', `${x} ${y} ${z}`);
+            line.setAttribute('line', 'end', `${x} ${y} ${z}`);
 
-            // Atur tali (Line component)
-            line.setAttribute('line', {
-                start: `0 ${FULCRUM_Y_OFFSET} 0`, 
-                end: `${x} ${y} ${z}`,
-                color: '#333',
-                opacity: 0.8,
-                width: 0.005
-            });
-
-            // Update output UI
             L_val_span.textContent = L.toFixed(2);
             theta_val_span.textContent = theta_deg;
             const T = calculatePeriod(L);
             T_val_span.textContent = T.toFixed(2);
+            
+            // Reset nilai real-time saat statis
+            time_val_span.textContent = '0.00';
+            angle_val_span.textContent = theta_deg.toFixed(2);
+            omega_val_span.textContent = '0.00';
         }
 
         // --- LOGIKA UTAMA A-FRAME COMPONENT ---
 
         AFRAME.registerComponent('script-logika-pendulum', {
             init: function () {
-                // Inisialisasi referensi objek
                 bob = document.getElementById('bob');
                 line = document.getElementById('pendulum-line');
-                arAnchor = document.getElementById('ar-anchor');
 
-                // Set posisi awal statis
                 const L_init = parseFloat(L_input.value);
                 const theta_init = parseFloat(theta_input.value);
                 setBobPosition(L_init, theta_init);
 
-                // --- Event Listeners UI ---
+                // Event Listeners UI
                 L_input.addEventListener('input', () => {
                     if (!isSimulating) { setBobPosition(parseFloat(L_input.value), parseFloat(theta_input.value)); }
                 });
-
                 theta_input.addEventListener('input', () => {
                     if (!isSimulating) { setBobPosition(parseFloat(L_input.value), parseFloat(theta_input.value)); }
                 });
 
                 startButton.addEventListener('click', () => {
-                    if (!isPlaced) {
-                        alert("Harap tempatkan statif di lantai terlebih dahulu (Tap layar saat AR aktif).");
-                        return;
-                    }
                     if (!isSimulating) {
                         isSimulating = true;
-                        startTime = this.el.sceneEl.time / 1000; // Mulai hitung waktu
+                        startTime = this.el.sceneEl.time / 1000;
                         startButton.disabled = true;
                         resetButton.disabled = false;
                         status_text.textContent = 'Simulasi sedang berjalan.';
@@ -247,17 +252,6 @@
                     status_text.textContent = 'Simulasi direset. Atur ulang nilai atau mulai lagi.';
                     setBobPosition(parseFloat(L_input.value), parseFloat(theta_input.value));
                 });
-
-                // --- Logic AR Placement ---
-                this.el.sceneEl.addEventListener('ar-hit-test-succeeded', (evt) => {
-                    if (!isPlaced) {
-                        // Tempatkan jangkar AR di posisi tap user
-                        arAnchor.setAttribute('position', evt.detail.position);
-                        arAnchor.setAttribute('visible', true);
-                        isPlaced = true;
-                        status_text.textContent = 'Statif ditempatkan! Tekan "Mulai Simulasi".';
-                    }
-                });
             },
 
             tick: function (time, deltaTime) {
@@ -270,16 +264,24 @@
                 const theta_max_deg = parseFloat(theta_input.value);
                 const theta_max_rad = THREE.MathUtils.degToRad(theta_max_deg);
 
-                // Hitung posisi sudut saat ini (Gerak Kontinu)
+                // --- PERHITUNGAN REAL-TIME ---
                 const theta_t_rad = calculateAngle(t, L, theta_max_rad);
+                const omega_t_rad = calculateAngularVelocity(t, L, theta_max_rad);
+
+                // Konversi sudut ke derajat untuk tampilan
+                const theta_t_deg = THREE.MathUtils.radToDeg(theta_t_rad);
                 
-                // Perhitungan posisi 3D Kartesius
+                // --- UPDATE POSISI 3D ---
                 const x = L * Math.sin(theta_t_rad);
                 const y = FULCRUM_Y_OFFSET - L * Math.cos(theta_t_rad);
-
-                // Perbarui posisi bandul dan tali di setiap frame (Gerak kontinu)
+                
                 bob.setAttribute('position', `${x} ${y} 0`);
                 line.setAttribute('line', 'end', `${x} ${y} 0`);
+
+                // --- UPDATE OUTPUT REAL-TIME ---
+                time_val_span.textContent = t.toFixed(2);
+                angle_val_span.textContent = theta_t_deg.toFixed(2);
+                omega_val_span.textContent = omega_t_rad.toFixed(2);
             }
         });
     </script>
