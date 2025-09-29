@@ -2,96 +2,108 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>Simulasi 3D Pendulum Minimalis</title>
+    <title>Simulasi 3D Pendulum Minimalis (Final)</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
 
     <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
 
     <style>
+        /* Mengatur ulang margin dan font dasar */
         body {
             margin: 0;
             overflow: hidden;
-            font-family: sans-serif;
+            font-family: Arial, sans-serif;
             color: #fff;
         }
 
-        /* Container Kontrol (Kiri Atas) */
+        /* --- STYLING KONTROL (KIRI ATAS) --- */
         #ui-container {
             position: fixed;
             top: 10px;
-            left: 10px; /* Pindah ke KIRI atas */
-            width: 200px; /* Lebar lebih kecil */
+            left: 10px;
+            width: 190px; /* Dibuat sangat kecil */
             padding: 8px;
-            background-color: rgba(0, 0, 0, 0.75);
+            background-color: rgba(0, 0, 0, 0.8);
             box-sizing: border-box;
             z-index: 1000;
             border-radius: 6px;
-            box-shadow: 0 0 8px rgba(0, 0, 0, 0.5);
+        }
+        
+        #ui-container h4 {
+            margin: 0 0 5px 0;
+            font-size: 1em;
+            text-align: center;
         }
 
-        /* Container Output Data (Kanan Atas) */
-        #data-output-container {
-            position: fixed;
-            top: 10px;
-            right: 10px; /* Pindah ke KANAN atas */
-            width: 220px;
-            padding: 8px;
-            background-color: rgba(0, 0, 0, 0.75);
-            box-sizing: border-box;
-            z-index: 1000;
-            border-radius: 6px;
-            box-shadow: 0 0 8px rgba(0, 0, 0, 0.5);
-        }
-
-        /* Gaya Kontrol Input */
+        /* Gaya Input Slider */
         .control-group {
-            margin-bottom: 8px;
+            margin-bottom: 5px;
         }
 
         .control-group label {
             display: flex;
             justify-content: space-between;
-            font-size: 0.8em; /* Ukuran font lebih kecil */
+            font-size: 0.75em; /* Sangat kecil */
             margin-bottom: 1px;
         }
-
+        
+        .control-group input[type="range"] {
+            width: 100%;
+            height: 15px; /* Dibuat lebih tipis */
+        }
+        
         /* Gaya Tombol Aksi */
         #action-buttons {
             display: flex;
             justify-content: space-between;
-            margin: 8px 0;
+            margin: 8px 0 0 0;
         }
 
         #action-buttons button {
             flex-grow: 1;
             margin: 0 3px;
-            padding: 6px 4px; /* Padding lebih kecil */
-            font-size: 0.8em;
+            padding: 5px 2px; /* Dibuat kecil */
+            font-size: 0.75em;
             border: none;
             border-radius: 4px;
             cursor: pointer;
             font-weight: bold;
         }
 
+        /* --- STYLING OUTPUT DATA (KANAN ATAS) --- */
+        #data-output-container {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            width: 210px; /* Lebar sesuai konten */
+            padding: 8px;
+            background-color: rgba(0, 0, 0, 0.8);
+            box-sizing: border-box;
+            z-index: 1000;
+            border-radius: 6px;
+        }
+
+        #data-output-container strong {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 0.85em;
+            color: #A0D0FF;
+        }
+        
+        /* Gaya Baris Output */
+        #output p, #real-time-output p {
+            font-size: 0.75em; /* Sangat kecil */
+            margin: 3px 0;
+        }
+
+        #output { border-bottom: 1px solid #444; padding-bottom: 5px; margin-bottom: 5px; }
+        
         /* Warna Tombol */
         #startButton { background-color: #4CAF50; color: white; }
         #pauseButton { background-color: #FFC107; color: black; }
         #resetButton { background-color: #f44336; color: white; }
         #resetButton:disabled, #pauseButton:disabled { background-color: #888; cursor: default; }
 
-
-        /* Gaya Output Data */
-        #output p, #real-time-output p {
-            font-size: 0.8em;
-            margin: 4px 0;
-        }
-        
-        #data-output-container strong {
-            display: block;
-            margin-bottom: 5px;
-            font-size: 0.9em;
-            color: #A0D0FF;
-        }
     </style>
 </head>
 <body>
@@ -117,14 +129,12 @@
     </div>
 
     <div id="data-output-container">
-        <strong>DATA SIMULASI</strong>
         <div id="output">
+            <strong>DATA SIMULASI STATIS</strong>
             <p>Periode (T): <span id="T-val">2.01</span> s</p>
             <p>Gravitasi (g): 9.81 m/s²</p>
             <p>Status: <span id="status-text">Siap!</span></p>
         </div>
-
-        <hr style="border-top: 1px solid #444;">
 
         <div id="real-time-output">
             <strong>DATA REAL-TIME</strong>
@@ -162,7 +172,7 @@
 
         </a-entity>
 
-        <a-camera position="0 2.0 4" wasd-controls="enabled: true"></a-camera>
+        <a-camera position="0 2.0 4" look-controls="enabled: false" wasd-controls="enabled: false"></a-camera>
 
         <a-entity script-logika-pendulum></a-entity>
 
@@ -171,12 +181,12 @@
     <script>
         // --- KONSTANTA & VARIABEL GLOBAL ---
         const G = 9.81; 
-        const FULCRUM_Y_OFFSET = 2.5; // Tinggi titik tumpu statif dari alas
+        const FULCRUM_Y_OFFSET = 2.5; 
 
         let isSimulating = false;
-        let isPaused = false; // Status jeda
+        let isPaused = false; 
         let startTime = 0;
-        let pauseTime = 0; // Waktu saat jeda
+        let pauseTime = 0; 
 
         // Elemen DOM
         const L_input = document.getElementById('panjangTali');
@@ -232,42 +242,35 @@
             angle_val_span.textContent = angle_val.toFixed(2);
             omega_val_span.textContent = '0.00';
         }
-        
-        // --- LOGIKA UTAMA A-FRAME COMPONENT ---
 
+        // --- LOGIKA UTAMA A-FRAME COMPONENT ---
         AFRAME.registerComponent('script-logika-pendulum', {
             init: function () {
                 bob = document.getElementById('bob');
                 line = document.getElementById('pendulum-line');
 
-                // Inisialisasi posisi awal statis
                 const L_init = parseFloat(L_input.value);
                 const theta_init = parseFloat(theta_input.value);
                 setBobPosition(L_init, theta_init);
 
-                // --- Event Listeners UI ---
-
-                // Perubahan slider hanya diizinkan saat tidak berjalan/jeda
+                // Event Listeners UI
                 L_input.addEventListener('input', () => {
                     if (!isSimulating && !isPaused) { setBobPosition(parseFloat(L_input.value), parseFloat(theta_input.value)); }
                 });
                 theta_input.addEventListener('input', () => {
                     if (!isSimulating && !isPaused) { setBobPosition(parseFloat(L_input.value), parseFloat(theta_input.value)); }
                 });
-                
-                // Mulai Simulasi
+
                 startButton.addEventListener('click', () => {
                     if (isPaused) {
-                        // Lanjutkan dari waktu jeda
                         isPaused = false;
-                        // Sesuaikan startTime agar gerakan tetap mulus
+                        // Sesuaikan waktu mulai untuk melanjutkan secara mulus
                         startTime += (this.el.sceneEl.time / 1000) - pauseTime; 
                         
                         startButton.disabled = true;
                         pauseButton.disabled = false;
                         status_text.textContent = 'Simulasi berjalan.';
                     } else if (!isSimulating) {
-                        // Mulai baru
                         isSimulating = true;
                         startTime = this.el.sceneEl.time / 1000;
                         
@@ -278,30 +281,27 @@
                     }
                 });
 
-                // Jeda Simulasi (Pause)
                 pauseButton.addEventListener('click', () => {
                     if (isSimulating && !isPaused) {
                         isPaused = true;
-                        pauseTime = this.el.sceneEl.time / 1000; // Catat waktu jeda
+                        pauseTime = this.el.sceneEl.time / 1000; 
                         
                         startButton.disabled = false;
                         pauseButton.disabled = true;
                         status_text.textContent = 'Simulasi dijeda.';
-                        startButton.textContent = 'Lanjutkan'; // Ganti teks tombol
+                        startButton.textContent = 'Lanjutkan'; 
                     }
                 });
 
-                // Reset Simulasi
                 resetButton.addEventListener('click', () => {
                     isSimulating = false;
                     isPaused = false;
                     startButton.disabled = false;
                     pauseButton.disabled = true;
                     resetButton.disabled = true;
-                    startButton.textContent = 'Mulai'; // Kembalikan teks tombol
+                    startButton.textContent = 'Mulai'; 
                     status_text.textContent = 'Simulasi direset.';
                     
-                    // Kembali ke posisi awal
                     setBobPosition(parseFloat(L_input.value), parseFloat(theta_input.value));
                 });
             },
@@ -310,26 +310,26 @@
                 if (!isSimulating || isPaused) return;
 
                 const currentTime = time / 1000;
-                const t = currentTime - startTime; // Waktu berlalu
+                const t = currentTime - startTime; 
                 
                 const L = parseFloat(L_input.value);
                 const theta_max_deg = parseFloat(theta_input.value);
                 const theta_max_rad = THREE.MathUtils.degToRad(theta_max_deg);
 
-                // --- PERHITUNGAN REAL-TIME ---
+                // Perhitungan Real-Time
                 const theta_t_rad = calculateAngle(t, L, theta_max_rad);
                 const omega_t_rad = calculateAngularVelocity(t, L, theta_max_rad);
 
                 const theta_t_deg = THREE.MathUtils.radToDeg(theta_t_rad);
                 
-                // --- UPDATE POSISI 3D ---
+                // Update Posisi 3D
                 const x = L * Math.sin(theta_t_rad);
                 const y = FULCRUM_Y_OFFSET - L * Math.cos(theta_t_rad);
                 
                 bob.setAttribute('position', `${x} ${y} 0`);
                 line.setAttribute('line', 'end', `${x} ${y} 0`);
 
-                // --- UPDATE OUTPUT REAL-TIME ---
+                // Update Output Real-Time
                 time_val_span.textContent = t.toFixed(2);
                 angle_val_span.textContent = theta_t_deg.toFixed(2);
                 omega_val_span.textContent = omega_t_rad.toFixed(2);
