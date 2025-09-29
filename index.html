@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>Simulasi 3D Pendulum Final (dengan Tabel)</title>
+    <title>Simulasi 3D Pendulum Final (Tampilan Dikorversi)</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
 
     <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
@@ -16,37 +16,17 @@
             color: #fff;
         }
 
-        /* --- STYLING KONTROL (KIRI ATAS) --- */
-        #ui-container {
+        /* --- STYLING UMUM CONTAINER UI --- */
+        .ui-panel {
             position: fixed;
-            top: 10px;
-            left: 10px;
-            width: 190px;
             padding: 8px;
-            background-color: rgba(0, 0, 0, 0.8);
+            background-color: rgba(0, 0, 0, 0.85); /* Lebih gelap */
             box-sizing: border-box;
             z-index: 1000;
             border-radius: 6px;
-        }
-        
-        #ui-container h4 {
-            margin: 0 0 5px 0;
-            font-size: 1em;
-            text-align: center;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.6);
         }
 
-        /* Gaya Input Slider */
-        .control-group {
-            margin-bottom: 5px;
-        }
-
-        .control-group label {
-            display: flex;
-            justify-content: space-between;
-            font-size: 0.75em;
-            margin-bottom: 1px;
-        }
-        
         /* Gaya Tombol Aksi */
         #action-buttons {
             display: flex;
@@ -65,52 +45,37 @@
             font-weight: bold;
         }
         
-        /* Warna Tombol */
-        #startButton { background-color: #4CAF50; color: white; }
-        #pauseButton { background-color: #FFC107; color: black; }
-        #resetButton { background-color: #f44336; color: white; }
-        #logDataButton { background-color: #00BCD4; color: white; margin-top: 5px; width: 100%; }
-        #resetButton:disabled, #pauseButton:disabled { background-color: #888; cursor: default; }
+        /* Gaya Kontrol Input */
+        .control-group { margin-bottom: 5px; }
 
-        /* --- STYLING OUTPUT DATA (KANAN ATAS) --- */
-        #data-output-container {
-            position: fixed;
-            top: 10px;
-            right: 10px;
-            width: 320px; /* Dibuat lebih lebar untuk menampung tabel */
-            padding: 8px;
-            background-color: rgba(0, 0, 0, 0.8);
-            box-sizing: border-box;
-            z-index: 1000;
-            border-radius: 6px;
+        .control-group label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.75em;
+            margin-bottom: 1px;
+        }
+        
+        .control-group input[type="range"] {
+            width: 100%;
+            height: 15px;
         }
 
-        #data-output-container strong {
+        /* Gaya Output Data */
+        .ui-panel strong {
             display: block;
             margin-bottom: 5px;
             font-size: 0.85em;
             color: #A0D0FF;
         }
-        
-        /* Gaya Baris Output */
-        #output p, #real-time-output p {
-            font-size: 0.75em; 
+
+        #output p, #real-time-output p, #data-table-area h5 {
+            font-size: 0.75em;
             margin: 3px 0;
         }
 
         #output { border-bottom: 1px solid #444; padding-bottom: 5px; margin-bottom: 5px; }
-
+        
         /* --- STYLING TABEL PRAKTIKUM --- */
-        #data-table-area {
-            margin-top: 10px;
-        }
-
-        #data-table-area h5 {
-            margin: 0 0 5px 0;
-            font-size: 0.85em;
-            color: #ADD8E6;
-        }
-
         #data-table {
             width: 100%;
             border-collapse: collapse;
@@ -120,18 +85,35 @@
 
         #data-table th, #data-table td {
             border: 1px solid #444;
-            padding: 4px;
+            padding: 3px;
         }
 
-        #data-table th {
-            background-color: #333;
+        #data-table th { background-color: #333; }
+
+        /* Warna Tombol */
+        #startButton { background-color: #4CAF50; color: white; }
+        #pauseButton { background-color: #FFC107; color: black; }
+        #resetButton { background-color: #f44336; color: white; }
+        #logDataButton { 
+            background-color: #00BCD4; 
+            color: white; 
+            margin-top: 5px; 
+            width: 100%; 
+            padding: 5px;
+            font-size: 0.75em;
         }
+        #resetButton:disabled, #pauseButton:disabled { background-color: #888; cursor: default; }
+
     </style>
 </head>
 <body>
 
-    <div id="ui-container">
-        <h4>Kontrol Parameter</h4>
+    <div 
+        id="ui-container" 
+        class="ui-panel" 
+        style="top: 10px; left: 10px; width: 190px;">
+        
+        <h4 style="margin: 0 0 5px 0; font-size: 1em; text-align: center;">Kontrol Parameter</h4>
         
         <div class="control-group">
             <label for="panjangTali">Panjang Tali (L): <span id="L-val">1.00 m</span></label>
@@ -153,7 +135,10 @@
 
     </div>
 
-    <div id="data-output-container">
+    <div 
+        id="data-output-container" 
+        class="ui-panel"
+        style="top: 10px; right: 10px; width: 320px;">
         
         <div id="output">
             <strong>DATA SIMULASI STATIS</strong>
@@ -170,7 +155,7 @@
         </div>
         
         <div id="data-table-area">
-            <h5>Tabel Hasil Praktikum ($T^2$ vs $L$)</h5>
+            <h5 style="margin: 5px 0; color: #ADD8E6; font-size: 0.85em;">Tabel Hasil Praktikum ($T^2$ vs $L$)</h5>
             <table id="data-table">
                 <thead>
                     <tr>
@@ -215,7 +200,12 @@
 
         </a-entity>
 
-        <a-camera position="0 2.0 4" look-controls="enabled: false" wasd-controls="enabled: false"></a-camera>
+        <a-camera 
+            position="0 2.0 4" 
+            rotation="-20 0 0" 
+            look-controls="enabled: false" 
+            wasd-controls="enabled: false">
+        </a-camera>
 
         <a-entity script-logika-pendulum></a-entity>
 
@@ -230,69 +220,50 @@
         let isPaused = false; 
         let startTime = 0;
         let pauseTime = 0; 
+        let dataCount = 0; 
 
         // Elemen DOM
         const L_input = document.getElementById('panjangTali');
         const theta_input = document.getElementById('simpanganAwal');
+        const L_val_span = document.getElementById('L-val');
+        const theta_val_span = document.getElementById('theta-val');
         const T_val_span = document.getElementById('T-val');
         const status_text = document.getElementById('status-text');
         const startButton = document.getElementById('startButton');
         const pauseButton = document.getElementById('pauseButton');
         const resetButton = document.getElementById('resetButton');
-        const logDataButton = document.getElementById('logDataButton'); // BARU
-        const tableBody = document.getElementById('data-table-body');   // BARU
-        
-        // ... (Elemen DOM lainnya seperti sebelumnya) ...
-        const L_val_span = document.getElementById('L-val');
-        const theta_val_span = document.getElementById('theta-val');
+        const logDataButton = document.getElementById('logDataButton'); 
+        const tableBody = document.getElementById('data-table-body');   
         const time_val_span = document.getElementById('time-val');
         const angle_val_span = document.getElementById('angle-val');
         const omega_val_span = document.getElementById('omega-val');
-
-
         let bob, line;
-        let dataCount = 0; // Penghitung baris tabel
 
         // --- FUNGSI PERHITUNGAN FISIKA ---
-        function calculatePeriod(L) {
-            return 2 * Math.PI * Math.sqrt(L / G);
-        }
-
+        function calculatePeriod(L) { return 2 * Math.PI * Math.sqrt(L / G); }
         function calculateAngle(t, L, theta_max_rad) {
             const omega_natural = Math.sqrt(G / L);
             return theta_max_rad * Math.cos(omega_natural * t);
         }
-        
         function calculateAngularVelocity(t, L, theta_max_rad) {
             const omega_natural = Math.sqrt(G / L);
             return -omega_natural * theta_max_rad * Math.sin(omega_natural * t);
         }
 
-        // --- FUNGSI PENCATATAN DATA (BARU) ---
+        // --- FUNGSI PENCATATAN DATA ---
         function logDataToTable() {
             const L = parseFloat(L_input.value);
             const T = calculatePeriod(L);
             const T_squared = T * T;
             dataCount++;
 
-            // Buat baris baru
             const newRow = tableBody.insertRow();
             
-            // Kolom 1: Nomor
-            let cell1 = newRow.insertCell();
-            cell1.textContent = dataCount;
-
-            // Kolom 2: L
-            let cell2 = newRow.insertCell();
-            cell2.textContent = L.toFixed(2);
-
-            // Kolom 3: T
-            let cell3 = newRow.insertCell();
-            cell3.textContent = T.toFixed(2);
-            
-            // Kolom 4: T^2
-            let cell4 = newRow.insertCell();
-            cell4.textContent = T_squared.toFixed(3);
+            // Kolom Data
+            newRow.insertCell().textContent = dataCount;
+            newRow.insertCell().textContent = L.toFixed(2);
+            newRow.insertCell().textContent = T.toFixed(2);
+            newRow.insertCell().textContent = T_squared.toFixed(3);
             
             status_text.textContent = `Data ke-${dataCount} (L=${L.toFixed(2)}m) dicatat.`;
         }
@@ -302,7 +273,6 @@
             if (!bob || !line) return;
 
             const theta_rad = THREE.MathUtils.degToRad(theta_deg);
-            
             const x = L * Math.sin(theta_rad);
             const y = FULCRUM_Y_OFFSET - L * Math.cos(theta_rad); 
             
@@ -322,7 +292,6 @@
             angle_val_span.textContent = angle_val.toFixed(2);
             omega_val_span.textContent = '0.00';
             
-            // Log Data hanya diizinkan saat simulasi direset atau tidak berjalan
             logDataButton.disabled = isSimulating || isPaused; 
         }
 
@@ -335,7 +304,7 @@
                 const L_init = parseFloat(L_input.value);
                 const theta_init = parseFloat(theta_input.value);
                 setBobPosition(L_init, theta_init);
-                logDataButton.disabled = false; // Boleh mencatat saat inisialisasi
+                logDataButton.disabled = false; 
 
                 // Event Listeners UI
                 L_input.addEventListener('input', () => {
@@ -349,9 +318,10 @@
                     if (isPaused) {
                         isPaused = false;
                         startTime += (this.el.sceneEl.time / 1000) - pauseTime; 
+                        
                         startButton.disabled = true;
                         pauseButton.disabled = false;
-                        logDataButton.disabled = true; // Tidak boleh mencatat saat berjalan
+                        logDataButton.disabled = true; 
                         status_text.textContent = 'Simulasi berjalan.';
                     } else if (!isSimulating) {
                         isSimulating = true;
@@ -360,7 +330,7 @@
                         startButton.disabled = true;
                         pauseButton.disabled = false;
                         resetButton.disabled = false;
-                        logDataButton.disabled = true; // Tidak boleh mencatat saat berjalan
+                        logDataButton.disabled = true; 
                         status_text.textContent = 'Simulasi berjalan.';
                     }
                 });
@@ -372,7 +342,7 @@
                         
                         startButton.disabled = false;
                         pauseButton.disabled = true;
-                        logDataButton.disabled = false; // Boleh mencatat saat dijeda
+                        logDataButton.disabled = false; 
                         status_text.textContent = 'Simulasi dijeda.';
                         startButton.textContent = 'Lanjutkan'; 
                     }
@@ -384,16 +354,14 @@
                     startButton.disabled = false;
                     pauseButton.disabled = true;
                     resetButton.disabled = true;
-                    logDataButton.disabled = false; // Boleh mencatat setelah reset
+                    logDataButton.disabled = false; 
                     startButton.textContent = 'Mulai'; 
                     status_text.textContent = 'Simulasi direset.';
                     
                     setBobPosition(parseFloat(L_input.value), parseFloat(theta_input.value));
                 });
                 
-                // Event Listener Tombol Catat Data (BARU)
                 logDataButton.addEventListener('click', logDataToTable);
-
             },
 
             tick: function (time, deltaTime) {
