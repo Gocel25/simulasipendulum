@@ -2,139 +2,75 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>Simulasi 3D Pendulum Final (Input Langsung)</title>
+    <title>Simulasi Pendulum Augmented Reality (AR)</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
 
     <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
 
     <style>
         /* Mengatur ulang margin dan font dasar */
-        body {
-            margin: 0;
-            overflow: hidden;
-            font-family: Arial, sans-serif;
-            color: #fff;
-        }
+        body { margin: 0; overflow: hidden; font-family: Arial, sans-serif; color: #fff; }
 
-        /* --- STYLING UMUM CONTAINER UI --- */
+        /* --- STYLING UMUM CONTAINER UI (TETAP SAMA) --- */
         .ui-panel {
             position: fixed;
             padding: 8px;
-            background-color: rgba(0, 0, 0, 0.85); /* Lebih gelap */
+            background-color: rgba(0, 0, 0, 0.85); 
             box-sizing: border-box;
             z-index: 1000;
             border-radius: 6px;
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.6);
+            /* Pastikan elemen UI muncul di atas video kamera */
         }
-
-        /* Gaya Tombol Aksi */
-        #action-buttons {
-            display: flex;
-            justify-content: space-between;
-            margin: 8px 0 0 0;
-        }
-
-        #action-buttons button {
-            flex-grow: 1;
-            margin: 0 3px;
-            padding: 5px 2px;
-            font-size: 0.75em;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-weight: bold;
-        }
+        
+        /* ... [CSS untuk input, tombol, tabel sama seperti sebelumnya] ... */
         
         /* Gaya Kontrol Input */
-        .control-group { 
-            margin-bottom: 5px; 
-            padding-bottom: 5px;
-            border-bottom: 1px dashed #555;
-        }
+        .control-group { margin-bottom: 5px; padding-bottom: 5px; border-bottom: 1px dashed #555; }
+        .control-group label { display: block; font-size: 0.75em; margin-bottom: 3px; font-weight: bold; }
+        .input-sync-container { display: flex; align-items: center; justify-content: space-between; }
+        .input-sync-container input[type="range"] { flex-grow: 1; margin-right: 5px; height: 15px; }
+        .input-sync-container input[type="number"] { width: 45px; text-align: right; color: black; font-size: 0.8em; padding: 2px; border: none; border-radius: 3px; }
 
-        .control-group label {
-            display: block; /* Label di atas */
-            font-size: 0.75em;
-            margin-bottom: 3px;
-            font-weight: bold;
-        }
-        
-        /* Wadah untuk Slider dan Input Number */
-        .input-sync-container {
-             display: flex; 
-             align-items: center; 
-             justify-content: space-between;
-        }
-
-        .input-sync-container input[type="range"] {
-            flex-grow: 1; 
-            margin-right: 5px;
-            height: 15px;
-        }
-        
-        .input-sync-container input[type="number"] {
-            width: 45px; /* Lebar lebih kecil */
-            text-align: right; 
-            color: black;
-            font-size: 0.8em;
-            padding: 2px;
-            border: none;
-            border-radius: 3px;
-        }
-
-        /* Gaya Output Data */
-        .ui-panel strong {
-            display: block;
-            margin-bottom: 5px;
-            font-size: 0.85em;
-            color: #A0D0FF;
-        }
-
-        #output p, #real-time-output p, #data-table-area h5 {
-            font-size: 0.75em;
-            margin: 3px 0;
-        }
-
-        #output { border-bottom: 1px solid #444; padding-bottom: 5px; margin-bottom: 5px; }
-        
-        /* --- STYLING TABEL PRAKTIKUM --- */
-        #data-table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 0.7em;
-            text-align: center;
-        }
-
-        #data-table th, #data-table td {
-            border: 1px solid #444;
-            padding: 3px;
-        }
-
-        #data-table th { background-color: #333; }
-
-        /* Warna Tombol */
+        /* Gaya Tombol Aksi */
+        #action-buttons { display: flex; justify-content: space-between; margin: 8px 0 0 0; }
+        #action-buttons button { flex-grow: 1; margin: 0 3px; padding: 5px 2px; font-size: 0.75em; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
         #startButton { background-color: #4CAF50; color: white; }
         #pauseButton { background-color: #FFC107; color: black; }
         #resetButton { background-color: #f44336; color: white; }
-        #logDataButton { 
-            background-color: #00BCD4; 
-            color: white; 
-            margin-top: 5px; 
-            width: 100%; 
-            padding: 5px;
-            font-size: 0.75em;
-        }
+        #logDataButton { background-color: #00BCD4; color: white; margin-top: 5px; width: 100%; padding: 5px; font-size: 0.75em; }
         #resetButton:disabled, #pauseButton:disabled { background-color: #888; cursor: default; }
+        
+        /* Gaya Output Data */
+        .ui-panel strong { display: block; margin-bottom: 5px; font-size: 0.85em; color: #A0D0FF; }
+        #output p, #real-time-output p, #data-table-area h5 { font-size: 0.75em; margin: 3px 0; }
+        #output { border-bottom: 1px solid #444; padding-bottom: 5px; margin-bottom: 5px; }
+        
+        /* STYLING TABEL */
+        #data-table { width: 100%; border-collapse: collapse; font-size: 0.7em; text-align: center; }
+        #data-table th, #data-table td { border: 1px solid #444; padding: 3px; }
+        #data-table th { background-color: #333; }
+        
+        /* NEW: STYLING FOR AR INSTRUCTIONS */
+        #ar-info {
+            position: fixed;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 5px 10px;
+            background-color: rgba(255, 255, 255, 0.9);
+            color: #333;
+            font-size: 0.8em;
+            border-radius: 5px;
+            z-index: 1000;
+        }
 
     </style>
 </head>
 <body>
 
-    <div 
-        id="ui-container" 
-        class="ui-panel" 
-        style="top: 10px; left: 10px; width: 190px;">
-        
+    <div id="ui-container" class="ui-panel" style="top: 10px; left: 10px; width: 190px;">
         <h4 style="margin: 0 0 5px 0; font-size: 1em; text-align: center;">Kontrol Parameter</h4>
         
         <div class="control-group">
@@ -162,13 +98,9 @@
         </div>
         
         <button id="logDataButton">Catat Data ($L$, $T$) ke Tabel</button>
-
     </div>
 
-    <div 
-        id="data-output-container" 
-        class="ui-panel"
-        style="top: 10px; right: 10px; width: 320px;">
+    <div id="data-output-container" class="ui-panel" style="top: 10px; right: 10px; width: 320px;">
         
         <div id="output">
             <strong>DATA SIMULASI STATIS</strong>
@@ -199,52 +131,48 @@
                     </tbody>
             </table>
         </div>
-
+    </div>
+    
+    <div id="ar-info">
+        ⚠️ **AR Aktif:** Arahkan kamera ke **marker HIRO** agar pendulum muncul!
     </div>
 
-    <a-scene
-        renderer="colorManagement: true;"
+
+    <a-scene 
+        embedded 
         vr-mode-ui="enabled: false"
-        background="color: #ECECEC" 
-        >
+        renderer="antialias: true; alpha: true; precision: medium;" 
+        arjs='sourceType: webcam; debugUIEnabled: false;'>
+        
+        <a-marker preset="hiro">
 
-        <a-light type="ambient" color="#FFF" intensity="0.5"></a-light>
-        <a-light type="directional" position="1 2 1" intensity="1.5"></a-light>
+            <a-entity id="pendulum-group" position="0 0 0">
+                
+                <a-sphere id="fulcrum" position="0 1 0" radius="0.02" color="#333"></a-sphere>
 
-        <a-plane rotation="-90 0 0" width="10" height="10" color="#7BC8A4" shadow></a-plane>
+                <a-entity 
+                    id="pendulum-line" 
+                    line="start: 0 1 0; end: 0 0 0; color: #333; opacity: 0.8; width: 0.005"></a-entity>
+                
+                <a-sphere id="bob" position="0 0 0" radius="0.1" color="#F00"></a-sphere>
 
-        <a-entity id="pendulum-group" position="0 0 0">
-            
-            <a-entity id="statif-model">
-                <a-box position="0 0.025 0" width="0.3" height="0.05" depth="0.3" color="#444" shadow></a-box>
-                <a-cylinder position="0 1.275 0" radius="0.02" height="2.5" color="#666" shadow></a-cylinder>
-                <a-box position="0 2.5 0" width="0.25" height="0.03" depth="0.03" color="#555" shadow></a-box>
-                <a-sphere id="fulcrum" position="0 2.5 0" radius="0.015" color="#333"></a-sphere>
+                <a-light type="ambient" color="#FFF" intensity="0.8"></a-light>
+
             </a-entity>
 
-            <a-entity 
-                id="pendulum-line" 
-                line="start: 0 2.5 0; end: 0 0 0; color: #333; opacity: 0.8; width: 0.005"></a-entity>
+            <a-entity script-logika-pendulum></a-entity>
             
-            <a-sphere id="bob" position="0 0 0" radius="0.1" color="#F00" shadow></a-sphere>
+        </a-marker>
 
-        </a-entity>
-
-        <a-camera 
-            position="0 2.0 4" 
-            rotation="-20 0 0" 
-            look-controls="enabled: false" 
-            wasd-controls="enabled: false">
-        </a-camera>
-
-        <a-entity script-logika-pendulum></a-entity>
+        <a-entity camera></a-entity>
 
     </a-scene>
 
     <script>
         // --- KONSTANTA & VARIABEL GLOBAL ---
         const G = 9.81; 
-        const FULCRUM_Y_OFFSET = 2.5; 
+        // Titik tumpu lebih rendah di AR agar muat di atas marker
+        const FULCRUM_Y_OFFSET = 1.0; 
 
         let isSimulating = false;
         let isPaused = false; 
@@ -272,44 +200,30 @@
         let bob, line;
 
         // --- FUNGSI SINKRONISASI INPUT ---
-
-        // Fungsi untuk mengamankan nilai dan memperbarui kedua input L
         function updateL(L_new) {
-            // Memastikan nilai L berada dalam batas min (0.5) dan max (2.0)
-            L_new = Math.min(2.0, Math.max(0.5, L_new || 0.5)); // Gunakan 0.5 jika input NaN
-            
+            L_new = Math.min(2.0, Math.max(0.5, L_new || 0.5));
             L_slider.value = L_new;
             L_number.value = L_new.toFixed(2);
-            
             if (!isSimulating && !isPaused) {
-                // Perlu memastikan nilai Theta juga valid saat memanggil setBobPosition
                 const theta_val = parseFloat(theta_number.value) || 30; 
                 setBobPosition(L_new, theta_val);
             }
         }
 
-        // Fungsi untuk mengamankan nilai dan memperbarui kedua input Theta
         function updateTheta(theta_new) {
-            // Memastikan nilai Theta berada dalam batas min (5) dan max (60)
             theta_new = Math.min(60, Math.max(5, theta_new || 5)); 
-            
             theta_slider.value = theta_new;
             theta_number.value = theta_new;
-            
             if (!isSimulating && !isPaused) {
                 const L_val = parseFloat(L_number.value) || 1.0;
                 setBobPosition(L_val, theta_new);
             }
         }
         
-        // Listener dari Slider
         function updateLFromSlider() { updateL(parseFloat(L_slider.value)); }
         function updateThetaFromSlider() { updateTheta(parseFloat(theta_slider.value)); }
-        
-        // Listener dari Input Number (menggunakan 'change' untuk validasi saat nilai selesai dimasukkan)
         function updateLFromNumber() { updateL(parseFloat(L_number.value)); }
         function updateThetaFromNumber() { updateTheta(parseFloat(theta_number.value)); }
-
 
         // --- FUNGSI FISIKA & UI DASAR ---
         function calculatePeriod(L) { return 2 * Math.PI * Math.sqrt(L / G); }
@@ -329,7 +243,6 @@
             dataCount++;
 
             const newRow = tableBody.insertRow();
-            
             newRow.insertCell().textContent = dataCount;
             newRow.insertCell().textContent = L.toFixed(2);
             newRow.insertCell().textContent = T.toFixed(2);
@@ -338,23 +251,20 @@
             status_text.textContent = `Data ke-${dataCount} (L=${L.toFixed(2)}m) dicatat.`;
         }
         
-        // Memperbarui posisi 3D berdasarkan nilai dari input number
         function setBobPosition(L, theta_deg) {
             if (!bob || !line) return;
 
             const theta_rad = THREE.MathUtils.degToRad(theta_deg);
             const x = L * Math.sin(theta_rad);
+            // Y dihitung dari FULCRUM_Y_OFFSET ke bawah
             const y = FULCRUM_Y_OFFSET - L * Math.cos(theta_rad); 
             
             bob.setAttribute('position', `${x} ${y} 0`);
             line.setAttribute('line', 'end', `${x} ${y} 0`);
 
             const T = calculatePeriod(L);
-            
-            // Update output statis
             T_val_span.textContent = T.toFixed(2);
             
-            // Reset nilai real-time
             const angle_val = THREE.MathUtils.radToDeg(theta_rad);
             time_val_span.textContent = '0.00';
             angle_val_span.textContent = angle_val.toFixed(2);
@@ -369,13 +279,13 @@
                 bob = document.getElementById('bob');
                 line = document.getElementById('pendulum-line');
 
-                // Pasang Event Listeners untuk sinkronisasi input
+                // Pasang Event Listeners
                 L_slider.addEventListener('input', updateLFromSlider);
                 L_number.addEventListener('change', updateLFromNumber);
                 theta_slider.addEventListener('input', updateThetaFromSlider);
                 theta_number.addEventListener('change', updateThetaFromNumber);
 
-                // Inisialisasi posisi awal menggunakan nilai dari input number
+                // Inisialisasi
                 const L_init = parseFloat(L_number.value);
                 const theta_init = parseFloat(theta_number.value);
                 setBobPosition(L_init, theta_init);
@@ -383,7 +293,8 @@
 
                 // Event Listeners Kontrol Simulasi
                 startButton.addEventListener('click', () => {
-                    if (isPaused) {
+                    // ... [Logika startButton sama seperti sebelumnya] ...
+                     if (isPaused) {
                         isPaused = false;
                         startTime += (this.el.sceneEl.time / 1000) - pauseTime; 
                         
@@ -404,6 +315,7 @@
                 });
 
                 pauseButton.addEventListener('click', () => {
+                    // ... [Logika pauseButton sama seperti sebelumnya] ...
                     if (isSimulating && !isPaused) {
                         isPaused = true;
                         pauseTime = this.el.sceneEl.time / 1000; 
@@ -417,6 +329,7 @@
                 });
 
                 resetButton.addEventListener('click', () => {
+                    // ... [Logika resetButton sama seperti sebelumnya] ...
                     isSimulating = false;
                     isPaused = false;
                     startButton.disabled = false;
@@ -426,7 +339,6 @@
                     startButton.textContent = 'Mulai'; 
                     status_text.textContent = 'Simulasi direset.';
                     
-                    // Reset posisi menggunakan nilai saat ini (yang sudah disinkronkan)
                     setBobPosition(parseFloat(L_number.value), parseFloat(theta_number.value));
                 });
                 
@@ -439,7 +351,6 @@
                 const currentTime = time / 1000;
                 const t = currentTime - startTime; 
                 
-                // Ambil nilai terbaru dari input number
                 const L = parseFloat(L_number.value);
                 const theta_max_deg = parseFloat(theta_number.value);
                 const theta_max_rad = THREE.MathUtils.degToRad(theta_max_deg);
